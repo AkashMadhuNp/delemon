@@ -18,7 +18,7 @@ class _StaffDashboardPageState extends State<StaffDashboardPage> {
 
   final List<Widget> _pages = [
     const StaffProjectScreens(),
-    const StaffTask(),
+     StaffTaskPage(),
     ReportsPage()
   ];
 

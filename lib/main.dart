@@ -11,6 +11,7 @@ import 'package:delemon/presentation/admin/admin_dashboard.dart';
 import 'package:delemon/presentation/blocs/login/bloc/login_bloc.dart';
 import 'package:delemon/presentation/blocs/report/bloc/report_bloc.dart';
 import 'package:delemon/presentation/blocs/signup/bloc/signup_bloc.dart';
+import 'package:delemon/presentation/blocs/stafftask/bloc/staftask_bloc.dart';
 import 'package:delemon/presentation/splash_screen.dart';
 import 'package:delemon/presentation/staff/staff_dashboard.dart';
 import 'package:delemon/presentation/auth/signup_page.dart';
@@ -94,17 +95,14 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        // Authentication BLoC - Available globally
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(authService: _authService),
         ),
         
-        // Sign Up BLoC - Available globally
         BlocProvider<SignUpBloc>(
           create: (context) => SignUpBloc(authService: _authService),
         ),
         
-        // Reports BLoC - Available globally
         BlocProvider<ReportsBloc>(
           create: (context) => ReportsBloc(
             projectService: _projectService,
@@ -112,6 +110,14 @@ class _MyAppState extends State<MyApp> {
             authService: _authService,
           ),
         ),
+
+
+        BlocProvider<StaffTaskBloc>(create: (context) => StaffTaskBloc(
+          taskService: _taskService, 
+          projectService: _projectService, 
+          authService: _authService, 
+          context: context),
+          )
         
         
       ],
