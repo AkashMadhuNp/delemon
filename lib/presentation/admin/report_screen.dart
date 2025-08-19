@@ -58,12 +58,10 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     );
   }
 
-  /// Load all necessary data for reports
   Future<void> _loadInitialData() async {
     await _loadReportsData();
   }
 
-  /// Main method to load reports data with proper error handling
   Future<void> _loadReportsData() async {
     if (!mounted) return;
     
@@ -75,10 +73,8 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     });
 
     try {
-      // Load all required data concurrently for better performance
       await _loadAllRequiredData();
       
-      // Generate reports after all data is loaded
       await _generateAllProjectReports();
       
       if (mounted) {
@@ -101,7 +97,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Load all required data concurrently
   Future<void> _loadAllRequiredData() async {
     try {
       final results = await Future.wait([
@@ -117,7 +112,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Fetch projects with error handling
   Future<List<ProjectModel>> _fetchProjects() async {
     try {
       final projects = await _projectService.fetchProjects();
@@ -127,18 +121,16 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Fetch users and convert to map for efficient lookup
   Future<Map<String, UserModel>> _fetchUsers() async {
     try {
       final users = await _authService.getAllUsers();
       return {for (var user in users) user.id: user};
     } catch (e) {
       debugPrint('Warning: Failed to fetch users: $e');
-      return {}; // Return empty map instead of throwing to allow partial functionality
+      return {}; 
     }
   }
 
-  /// Generate reports for all projects
   Future<void> _generateAllProjectReports() async {
     if (_allProjects.isEmpty) {
       _projectReports = [];
@@ -147,14 +139,12 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
 
     final List<ProjectReport> reports = [];
     
-    // Process projects in batches to avoid overwhelming the system
     const batchSize = 5;
     for (int i = 0; i < _allProjects.length; i += batchSize) {
       final batch = _allProjects.skip(i).take(batchSize).toList();
       final batchReports = await _processBatchReports(batch);
       reports.addAll(batchReports);
       
-      // Allow UI to update between batches
       if (mounted) {
         await Future.delayed(const Duration(milliseconds: 50));
       }
@@ -163,13 +153,11 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     _projectReports = reports;
   }
 
-  /// Process a batch of project reports concurrently
   Future<List<ProjectReport>> _processBatchReports(List<ProjectModel> projects) async {
     try {
       final futures = projects.map((project) => _generateProjectReport(project));
       return await Future.wait(futures);
     } catch (e) {
-      // If batch processing fails, process individually
       final reports = <ProjectReport>[];
       for (final project in projects) {
         try {
@@ -184,7 +172,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Generate individual project report with improved error handling
   Future<ProjectReport> _generateProjectReport(ProjectModel project) async {
     try {
       final tasks = await _taskService.fetchTasksByProject(project.id);
@@ -195,7 +182,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Create project report from tasks data
   ProjectReport _createProjectReport(ProjectModel project, List<dynamic> tasks) {
     final totalTasks = tasks.length;
     final completedTasks = tasks.where((task) => task.status == TaskStatus.done.index).length;
@@ -229,7 +215,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     );
   }
 
-  /// Generate assignee reports from tasks
   List<AssigneeReport> _generateAssigneeReports(List<dynamic> tasks) {
     final Map<String, AssigneeTaskData> assigneeData = {};
     
@@ -253,7 +238,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }).toList();
   }
 
-  /// Get filtered projects based on search query
   List<ProjectReport> get filteredProjects {
     if (_searchQuery.isEmpty) {
       return _projectReports.where((project) => !project.archived).toList();
@@ -267,7 +251,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }).toList();
   }
 
-  /// Get selected project data
   ProjectReport? get selectedProjectData {
     if (_selectedProject == null) return null;
     try {
@@ -277,7 +260,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Handle search query changes
   void _onSearchChanged() {
     if (mounted) {
       setState(() {
@@ -286,7 +268,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Handle project selection
   void _onProjectSelected(String? projectId) {
     if (mounted) {
       setState(() {
@@ -295,13 +276,11 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Handle refresh action
   Future<void> _onRefresh() async {
     _animationController.reset();
     await _loadReportsData();
   }
 
-  /// Clear search query
   void _clearSearch() {
     _searchController.clear();
     if (mounted) {
@@ -311,7 +290,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     }
   }
 
-  /// Format error messages for user display
   String _formatError(dynamic error) {
     if (error is Exception) {
       return error.toString().replaceFirst('Exception: ', '');
@@ -414,7 +392,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
   }
 }
 
-// Helper class for assignee task data
 class AssigneeTaskData {
   int totalTasks = 0;
   int completedTasks = 0;
