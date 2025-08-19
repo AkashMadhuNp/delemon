@@ -3,6 +3,7 @@ import 'package:delemon/data/models/task_model.dart';
 import 'package:delemon/data/models/user_model.dart';
 import 'package:delemon/core/service/auth_service.dart';
 import 'package:delemon/data/datasources/task_local_datasource.dart';
+import 'package:delemon/domain/entities/task.dart';
 import 'package:flutter/material.dart';
 
 class TaskService {
@@ -13,6 +14,8 @@ class TaskService {
   final AuthService _authService = AuthService();
   final TaskLocalDatasource _taskDataSource = TaskLocalDatasource();
   final SubtaskLocalDatasource _subtaskDataSource = SubtaskLocalDatasource();
+
+  final Map<String, DateTime> _taskStartTimes = {};
 
   void _showSnackBar(BuildContext context, String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -62,10 +65,8 @@ class TaskService {
       
       final updatedTask = task.copyWith(updatedAt: DateTime.now());
       
-      // Update in Hive
       await _taskDataSource.updateTask(updatedTask);
       
-      // Verify the update was successful
       final verification = await _taskDataSource.verifyTaskStatusUpdate(task.id, task.status);
       
       if (verification) {
@@ -82,31 +83,50 @@ class TaskService {
     }
   }
 
-  // New method specifically for updating task status
   Future<void> updateTaskStatus(BuildContext context, String taskId, int newStatus) async {
     try {
       print("🔄 Updating task status: $taskId to status $newStatus");
       
-      // Get the current task
       final currentTask = await _taskDataSource.getTaskById(taskId);
       if (currentTask == null) {
         throw Exception("Task not found with ID: $taskId");
       }
       
-      // Create updated task with new status
+      double updatedTimeSpent = currentTask.timeSpentHours;
+      DateTime? updatedStartDate = currentTask.startDate;
+      
+      final oldStatus = TaskStatus.values[currentTask.status];
+      final targetStatus = TaskStatus.values[newStatus];
+      
+      updatedTimeSpent = await _calculateTimeSpent(
+        taskId, 
+        oldStatus, 
+        targetStatus, 
+        currentTask.timeSpentHours
+      );
+      
+      if (targetStatus == TaskStatus.inProgress && updatedStartDate == null) {
+        updatedStartDate = DateTime.now();
+      }
+      
       final updatedTask = currentTask.copyWith(
         status: newStatus,
+        timeSpentHours: updatedTimeSpent,
+        startDate: updatedStartDate,
         updatedAt: DateTime.now(),
       );
       
-      // Update in Hive
       await _taskDataSource.updateTask(updatedTask);
       
-      // Verify the update
       final verification = await _taskDataSource.verifyTaskStatusUpdate(taskId, newStatus);
       
       if (verification) {
-        _showSnackBar(context, "✅ Task status updated successfully!", Colors.blue);
+        String message = "✅ Task status updated successfully!";
+        if (updatedTimeSpent > currentTask.timeSpentHours) {
+          final hoursAdded = updatedTimeSpent - currentTask.timeSpentHours;
+          message += "\n⏱️ Added ${hoursAdded.toStringAsFixed(2)} hours";
+        }
+        _showSnackBar(context, message, Colors.blue);
         print("✅ Task status update completed and verified");
       } else {
         _showSnackBar(context, "⚠️ Task status updated but verification failed", Colors.orange);
@@ -119,9 +139,100 @@ class TaskService {
     }
   }
 
+  Future<void> updateTaskTimeSpent(BuildContext context, String taskId, double hoursToAdd) async {
+    try {
+      print("⏱️ Updating time spent for task: $taskId, adding $hoursToAdd hours");
+      
+      final currentTask = await _taskDataSource.getTaskById(taskId);
+      if (currentTask == null) {
+        throw Exception("Task not found with ID: $taskId");
+      }
+      
+      final updatedTask = currentTask.copyWith(
+        timeSpentHours: currentTask.timeSpentHours + hoursToAdd,
+        updatedAt: DateTime.now(),
+      );
+      
+      await _taskDataSource.updateTask(updatedTask);
+      
+      _showSnackBar(context, "✅ Time updated: +${hoursToAdd.toStringAsFixed(2)}h", Colors.blue);
+      print("✅ Time spent updated successfully");
+    } catch (e) {
+      _showSnackBar(context, "❌ Failed to update time: $e", Colors.red);
+      rethrow;
+    }
+  }
+
+  Future<double> _calculateTimeSpent(String taskId, TaskStatus oldStatus, TaskStatus newStatus, double currentTimeSpent) async {
+    double timeToAdd = 0.0;
+    
+    if (newStatus == TaskStatus.inProgress && oldStatus != TaskStatus.inProgress) {
+      _taskStartTimes[taskId] = DateTime.now();
+      print("⏱️ Started tracking time for task: $taskId");
+    }
+    
+    if (oldStatus == TaskStatus.inProgress && newStatus != TaskStatus.inProgress) {
+      final startTime = _taskStartTimes[taskId];
+      if (startTime != null) {
+        final duration = DateTime.now().difference(startTime);
+        timeToAdd = duration.inMinutes / 60.0; 
+        _taskStartTimes.remove(taskId); 
+        print("⏱️ Calculated time spent: ${timeToAdd.toStringAsFixed(2)} hours");
+      }
+    }
+    
+    switch (newStatus) {
+      case TaskStatus.inReview:
+        if (oldStatus == TaskStatus.inProgress) {
+          timeToAdd = timeToAdd > 0 ? timeToAdd : 0.5;
+        }
+        break;
+      case TaskStatus.completed:
+      case TaskStatus.done:
+        if (oldStatus == TaskStatus.inProgress || oldStatus == TaskStatus.inReview) {
+          timeToAdd = timeToAdd > 0 ? timeToAdd : 0.25;
+        }
+        break;
+      default:
+        break;
+    }
+    
+    return currentTimeSpent + timeToAdd;
+  }
+
+  void startTimeTracking(String taskId) {
+    _taskStartTimes[taskId] = DateTime.now();
+    print("⏱️ Manual time tracking started for task: $taskId");
+  }
+
+  double? stopTimeTracking(String taskId) {
+    final startTime = _taskStartTimes.remove(taskId);
+    if (startTime != null) {
+      final duration = DateTime.now().difference(startTime);
+      final hours = duration.inMinutes / 60.0;
+      print("⏱️ Manual time tracking stopped for task: $taskId, elapsed: ${hours.toStringAsFixed(2)}h");
+      return hours;
+    }
+    return null;
+  }
+
+  double? getCurrentTrackedTime(String taskId) {
+    final startTime = _taskStartTimes[taskId];
+    if (startTime != null) {
+      final duration = DateTime.now().difference(startTime);
+      return duration.inMinutes / 60.0;
+    }
+    return null;
+  }
+
+  bool isTaskBeingTracked(String taskId) {
+    return _taskStartTimes.containsKey(taskId);
+  }
+
   Future<void> deleteTask(BuildContext context, String id) async {
     try {
       await _taskDataSource.deleteTask(id);
+      _taskStartTimes.remove(id); 
       
       _showSnackBar(context, "🗑 Task deleted successfully", Colors.orange);
     } catch (e) {
@@ -251,6 +362,7 @@ class TaskService {
   Future<void> clearAllTasks(BuildContext context) async {
     try {
       await _taskDataSource.clearAllTasks();
+      _taskStartTimes.clear(); // Clear all time tracking
       _showSnackBar(context, "🗑 All tasks cleared successfully", Colors.orange);
     } catch (e) {
       _showSnackBar(context, "❌ Failed to clear tasks: $e", Colors.red);
@@ -263,7 +375,7 @@ class TaskService {
       final tasksStatus = await _taskDataSource.getAllTasksWithStatus();
       print("🐛 DEBUG - All tasks status:");
       tasksStatus.forEach((id, data) {
-        print("   $id: ${data['title']} - Status: ${data['status']} - Updated: ${data['updatedAt']}");
+        print("   $id: ${data['title']} - Status: ${data['status']} - Updated: ${data['updatedAt']} - Time: ${data['timeSpentHours']}h");
       });
     } catch (e) {
       print("❌ Debug print error: $e");
@@ -291,6 +403,7 @@ class TaskService {
 
   Future<void> dispose() async {
     try {
+      _taskStartTimes.clear(); 
       await _taskDataSource.closeBox();
     } catch (e) {
       print("❌ Failed to close task box: $e");

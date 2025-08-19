@@ -295,24 +295,18 @@ class ProjectDetailView extends StatelessWidget {
     String filename,
   ) async {
     try {
-      // Convert data to CSV format
       String csv = const ListToCsvConverter().convert(csvData);
 
-      // Get temporary directory
       final directory = await getTemporaryDirectory();
       final path = '${directory.path}/$filename.csv';
 
-      // Write CSV to file
       final file = File(path);
       await file.writeAsString(csv);
 
-      // Close loading dialog
       Navigator.of(context).pop();
 
-      // Share the file
       await Share.shareXFiles([XFile(path)], text: 'Project Report CSV Export');
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('CSV exported and shared successfully!'),
@@ -321,7 +315,7 @@ class ProjectDetailView extends StatelessWidget {
         ),
       );
     } catch (e) {
-      Navigator.of(context).pop(); // Close loading dialog if still open
+      Navigator.of(context).pop(); 
       _showErrorDialog(context, 'Failed to generate CSV: $e');
     }
   }
