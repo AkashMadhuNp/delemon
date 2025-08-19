@@ -1,64 +1,73 @@
-import 'package:delemon/data/datasources/user_local_datasource.dart';
+import 'package:delemon/presentation/admin/report_screen.dart';
+import 'package:delemon/presentation/staff/staff_projects.dart';
+import 'package:delemon/presentation/staff/staff_tasks.dart';
+import 'package:delemon/core/service/auth_service.dart';
+import 'package:go_router/go_router.dart'; 
 import 'package:flutter/material.dart';
-import 'package:delemon/data/models/user_model.dart';
 
-class StaffDashboard extends StatefulWidget {
-  const StaffDashboard({super.key});
+class StaffDashboardPage extends StatefulWidget {
+  const StaffDashboardPage({super.key});
 
   @override
-  State<StaffDashboard> createState() => _StaffDashboardState();
+  State<StaffDashboardPage> createState() => _StaffDashboardPageState();
 }
 
-class _StaffDashboardState extends State<StaffDashboard> {
-  final UserLocalDataSource _userLocalDataSource = UserLocalDataSource();
-  List<UserModel> staffs = [];
-  bool isLoading = true;
-  String? errorMessage;
+class _StaffDashboardPageState extends State<StaffDashboardPage> {
+  int _currentIndex = 0;
+  final AuthService _authService = AuthService();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadStaffs();
+  final List<Widget> _pages = [
+    const StaffProjectScreens(),
+    const StaffTask(),
+    ReportsPage()
+  ];
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); 
+                await _performLogout();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  Future<void> _loadStaffs() async {
+  Future<void> _performLogout() async {
     try {
-      setState(() {
-        isLoading = true;
-        errorMessage = null;
-      });
-
-      await _userLocalDataSource.printAllUsersToTerminal();
+      await _authService.logout();
       
-      final allUsers = await _userLocalDataSource.getAllUsers();
-      print('\n=== STAFF DASHBOARD DEBUG ===');
-      print('Total users from getAllUsers: ${allUsers.length}');
-      
-      for (var user in allUsers) {
-        print('User: ${user.name}, Role: ${user.role}, Role Type: ${user.role.runtimeType}');
-        print('  Is staff? ${user.role == UserRoleAdapter.staff}');
+      if (mounted) {
+        context.go('/login'); 
       }
-      
-      // Now get staffs specifically
-      final fetchedStaffs = await _userLocalDataSource.getAllStaffs();
-      print('Staff users from getAllStaffs: ${fetchedStaffs.length}');
-      
-      for (var staff in fetchedStaffs) {
-        print('Staff: ${staff.name} (${staff.email})');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logout failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-      print('=== END DEBUG ===\n');
-
-      setState(() {
-        staffs = fetchedStaffs;
-        isLoading = false;
-      });
-    } catch (e, stackTrace) {
-      print('Error loading staffs: $e');
-      print('Stack trace: $stackTrace');
-      setState(() {
-        isLoading = false;
-        errorMessage = e.toString();
-      });
     }
   }
 
@@ -67,107 +76,35 @@ class _StaffDashboardState extends State<StaffDashboard> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Staff Dashboard"),
+        automaticallyImplyLeading: false, 
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadStaffs,
+            onPressed: _showLogoutDialog,
+            icon: const Icon(Icons.exit_to_app),
+            tooltip: 'Logout',
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text("Error: $errorMessage"),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadStaffs,
-                        child: const Text("Retry"),
-                      ),
-                    ],
-                  ),
-                )
-              : staffs.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                          const SizedBox(height: 16),
-                          const Text("No staff members found"),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _loadStaffs,
-                            child: const Text("Refresh"),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        // Header with count
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            children: [
-                              Text(
-                                "Staff Members (${staffs.length})",
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Staff list
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: staffs.length,
-                            itemBuilder: (context, index) {
-                              final staff = staffs[index];
-                              return Card(
-                                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                    child: Icon(
-                                      Icons.person_outline,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    staff.name,
-                                    style: const TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                  subtitle: Text(staff.email),
-                                  trailing: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.green.withOpacity(0.3)),
-                                    ),
-                                    child: Text(
-                                      "STAFF",
-                                      style: TextStyle(
-                                        color: Colors.green[700],
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.work_outline),
+            label: "Projects",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.task_outlined),
+            label: "Tasks",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart_outlined),
+            label: "Report",
+          ),
+        ],
+      ),
     );
   }
 }

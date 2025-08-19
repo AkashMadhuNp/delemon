@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 
 class ProjectCardActions extends StatelessWidget {
   final Animation<double> fadeAnimation;
-  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const ProjectCardActions({
     super.key,
     required this.fadeAnimation,
-    required this.onEdit,
     required this.onDelete,
   });
 
@@ -24,26 +22,16 @@ class ProjectCardActions extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            _ActionButton(
-              animation: fadeAnimation,
-              color: Colors.blue[600]!,
-              icon: Icons.edit_rounded,
-              label: 'Edit',
-              onTap: onEdit,
-              isLeft: true,
-            ),
-            _ActionButton(
-              animation: fadeAnimation,
-              color: Colors.red[600]!,
-              icon: Icons.delete_rounded,
-              label: 'Delete',
-              onTap: onDelete,
-              isLeft: false,
-            ),
-          ],
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: _ActionButton(
+            animation: fadeAnimation,
+            color: Theme.of(context).colorScheme.onSurface,
+            icon: Icons.delete_rounded,
+            label: 'Delete',
+            onTap: onDelete,
+            isLeft: false,
+          ),
         ),
       ),
     );
@@ -98,7 +86,7 @@ class _ActionButton extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: Colors.white, size: 22),
+                  Icon(icon, color: Colors.red, size: 22),
                   const SizedBox(height: 4),
                   Text(
                     label,

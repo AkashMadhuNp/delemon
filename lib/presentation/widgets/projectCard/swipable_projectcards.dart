@@ -1,12 +1,9 @@
 import 'package:delemon/data/models/project_model.dart';
 import 'package:delemon/presentation/widgets/projectCard/components/dialogs/archive_confirmation_dialog.dart';
-import 'package:delemon/presentation/widgets/projectCard/components/project_card_actions.dart';
-import 'package:delemon/presentation/widgets/projectCard/components/project_card_content.dart';
 import 'package:flutter/material.dart';
 
-class SwipeableProjectCard extends StatefulWidget {
+class SwipeableProjectCard extends StatelessWidget {
   final ProjectModel project;
-  final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onArchive;
   final VoidCallback? onTap;
@@ -14,129 +11,127 @@ class SwipeableProjectCard extends StatefulWidget {
   const SwipeableProjectCard({
     super.key,
     required this.project,
-    required this.onEdit,
     required this.onDelete,
     required this.onArchive,
     this.onTap,
   });
 
-  @override
-  State<SwipeableProjectCard> createState() => _SwipeableProjectCardState();
-}
-
-class _SwipeableProjectCardState extends State<SwipeableProjectCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
-
-  bool _isRevealed = false;
-  static const double _actionWidth = 140.0;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeAnimations();
-  }
-
-  void _initializeAnimations() {
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 250),
-      vsync: this,
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(-_actionWidth / 300, 0),
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-
-    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _toggleReveal() {
-    setState(() => _isRevealed = !_isRevealed);
-    _isRevealed ? _controller.forward() : _controller.reverse();
-  }
-
-  Future<void> _handleAction(VoidCallback action) async {
-    await _controller.reverse();
-    setState(() => _isRevealed = false);
-    action();
-  }
-
-  Future<void> _showArchiveDialog() async {
+  Future<void> _showArchiveDialog(BuildContext context) async {
     final result = await ArchiveConfirmationDialog.show(
       context: context,
-      project: widget.project,
+      project: project,
     );
-    
     if (result == true) {
-      widget.onArchive();
+      onArchive();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _isRevealed ? _toggleReveal : widget.onTap,
-      onHorizontalDragEnd: _handleDragEnd,
-      onHorizontalDragUpdate: _handleDragUpdate,
-      child: Container(
-        decoration: _cardDecoration(context),
-        child: Stack(
-          children: [
-            ProjectCardActions(
-              fadeAnimation: _fadeAnimation,
-              onEdit: () => _handleAction(widget.onEdit),
-              onDelete: () => _handleAction(widget.onDelete),
+    return Dismissible(
+      key: ValueKey(project.id), 
+      direction: DismissDirection.endToStart, 
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      onDismissed: (direction) {
+        onDelete();
+      },
+      child: Card(
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            print('Card tapped for project: ${project.name}');
+            onTap?.call();
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.folder_outlined,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        project.name,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: project.archived 
+                            ? Colors.orange.withOpacity(0.2)
+                            : Colors.green.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        project.archived ? 'Archived' : 'Active',
+                        style: TextStyle(
+                          color: project.archived ? Colors.orange[700] : Colors.green[700],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 8),
+                
+                if (project.description.isNotEmpty) ...[
+                  Text(
+                    project.description,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Footer with archive/restore button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    // Show appropriate button based on archive status
+                    TextButton.icon(
+                      onPressed: () => _showArchiveDialog(context),
+                      icon: Icon(
+                        project.archived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                        size: 16,
+                      ),
+                      label: Text(project.archived ? 'Restore' : 'Archive'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: project.archived ? Colors.green : Colors.orange,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            SlideTransition(
-              position: _slideAnimation,
-              child: ProjectCardContent(
-                project: widget.project,
-                onTap: _isRevealed ? _toggleReveal : widget.onTap,
-                onArchive: _showArchiveDialog,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  void _handleDragEnd(DragEndDetails details) {
-    if (details.primaryVelocity! < -500 && !_isRevealed) {
-      _toggleReveal();
-    } else if (details.primaryVelocity! > 500 && _isRevealed) {
-      _toggleReveal();
-    }
-  }
-
-  void _handleDragUpdate(DragUpdateDetails details) {
-    if (details.delta.dx < -5 && !_isRevealed) {
-      _toggleReveal();
-    } else if (details.delta.dx > 5 && _isRevealed) {
-      _toggleReveal();
-    }
-  }
-
-  BoxDecoration _cardDecoration(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return BoxDecoration(
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: (isDark ? Colors.black : Colors.black).withOpacity(0.08),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
     );
   }
 }

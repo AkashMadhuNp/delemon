@@ -16,16 +16,27 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<User?> login(String email, String password) async {
-    final userModel = await localDataSource.getUserByEmail(email);
-    if (userModel != null && userModel.password == password) {
-      return userModel.toEntity();
-    }
-    return null;
+    final userModel = await localDataSource.validateUser(email, password);
+    return userModel?.toEntity();
   }
 
   @override
   Future<List<User>> getAllUsers() async {
     final models = await localDataSource.getAllUsers();
     return models.map((m) => m.toEntity()).toList();
+  }
+
+  Future<List<User>> getAllStaffs() async {
+    final models = await localDataSource.getAllStaffs();
+    return models.map((m) => m.toEntity()).toList();
+  }
+
+  Future<void> deleteUser(String userId) async {
+    await localDataSource.deleteUser(userId);
+  }
+
+  Future<void> updateUser(User user) async {
+    final userModel = UserModel.fromEntity(user);
+    await localDataSource.updateUser(userModel);
   }
 }

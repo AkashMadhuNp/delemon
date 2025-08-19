@@ -1,4 +1,3 @@
-import 'package:delemon/core/colors/color.dart';
 import 'package:flutter/material.dart';
 
 class ArchiveButton extends StatelessWidget {
@@ -14,18 +13,24 @@ class ArchiveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    
+    print('ArchiveButton - isArchived: $isArchived');
+    
     final bgColor = isArchived ? Colors.green[50] : Colors.orange[50];
     final borderColor = isArchived ? Colors.green[200] : Colors.orange[200];
     final iconColor = isArchived ? Colors.green[600] : Colors.orange[600];
     final tooltip = isArchived ? 'Unarchive Project' : 'Archive Project';
-    
+
     return Tooltip(
       message: tooltip,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
+          onTap: () {
+            print('Archive button tapped - current state: ${isArchived ? "archived" : "not archived"}');
+            onTap();
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(

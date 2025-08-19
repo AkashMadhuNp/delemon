@@ -2,15 +2,34 @@ import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
   final String label;
-  final Future<void> Function()? onPressed; // Changed to handle async functions
+  final Future<void> Function()? onPressedAsync; 
+  final VoidCallback? onPressed;
   final bool isLoading;
 
   const CustomButton({
     super.key,
     required this.label,
+    this.onPressedAsync,
+    this.onPressed,
+    this.isLoading = false,
+  }) : assert(
+         (onPressedAsync != null) ^ (onPressed != null),
+         'Either onPressedAsync or onPressed must be provided, but not both',
+       );
+
+  const CustomButton.async({
+    super.key,
+    required this.label,
+    required this.onPressedAsync,
+    this.isLoading = false,
+  }) : onPressed = null;
+
+  const CustomButton.sync({
+    super.key,
+    required this.label,
     required this.onPressed,
     this.isLoading = false,
-  });
+  }) : onPressedAsync = null;
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +47,14 @@ class CustomButton extends StatelessWidget {
           foregroundColor: theme.colorScheme.onPrimary,
           elevation: 2,
         ),
-        onPressed: (isLoading || onPressed == null) 
+        onPressed: isLoading 
             ? null 
             : () async {
-                await onPressed!(); // Execute the async function
+                if (onPressedAsync != null) {
+                  await onPressedAsync!();
+                } else if (onPressed != null) {
+                  onPressed!();
+                }
               },
         child: isLoading
             ? const SizedBox(
