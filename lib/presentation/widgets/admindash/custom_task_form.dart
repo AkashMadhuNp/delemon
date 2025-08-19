@@ -409,7 +409,7 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
       children: [
         Row(
           children: [
-            Text("Labels", style: Theme.of(context).textTheme.titleMedium),
+            Text("Sub Task", style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.add_circle_outline),
@@ -696,7 +696,7 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
           controller: labelController,
           decoration: const InputDecoration(
             labelText: "Label name",
-            hintText: "e.g., UI/UX, Backend, Bug",
+            hintText: "Sub Tasks",
           ),
           maxLength: 20,
         ),

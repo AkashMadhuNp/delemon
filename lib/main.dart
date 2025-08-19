@@ -24,7 +24,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
-  // Register Hive adapters
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(UserRoleAdapterAdapter());
   }

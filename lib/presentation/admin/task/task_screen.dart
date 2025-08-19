@@ -1,4 +1,3 @@
-// Updated part of the TasksPage to add navigation
 import 'package:delemon/core/service/project_service.dart';
 import 'package:delemon/core/service/task_service.dart';
 import 'package:delemon/data/models/project_model.dart';
