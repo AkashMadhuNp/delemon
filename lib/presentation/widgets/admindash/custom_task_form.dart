@@ -64,9 +64,9 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
         const SizedBox(height: 16),
         _buildDescriptionField(),
         const SizedBox(height: 16),
-        _buildStatusPriorityRow(),
+        _buildStatusPrioritySection(),
         const SizedBox(height: 16),
-        _buildDateRow(context),
+        _buildDateSection(context),
         const SizedBox(height: 16),
         _buildEstimateField(),
         const SizedBox(height: 16),
@@ -148,89 +148,154 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
     );
   }
 
-  Widget _buildStatusPriorityRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: DropdownButtonFormField<TaskStatus>(
-            value: widget.selectedStatus,
-            decoration: InputDecoration(
-              labelText: "Status",
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              prefixIcon: const Icon(Icons.flag),
-            ),
-            items: TaskStatus.values.map((status) => DropdownMenuItem(
-              value: status,
-              child: Text(TaskHelpers.getStatusDisplayName(status)),
-            )).toList(),
-            onChanged: (value) => value != null ? widget.onStatusChanged(value) : null,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: DropdownButtonFormField<TaskPriority>(
-            value: widget.selectedPriority,
-            decoration: InputDecoration(
-              labelText: "Priority",
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              prefixIcon: Icon(
-                Icons.priority_high,
-                color: TaskHelpers.getPriorityColor(widget.selectedPriority),
-              ),
-            ),
-            items: TaskPriority.values.map((priority) => DropdownMenuItem(
-              value: priority,
-              child: Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: TaskHelpers.getPriorityColor(priority),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(TaskHelpers.getPriorityDisplayName(priority)),
-                ],
-              ),
-            )).toList(),
-            onChanged: (value) => value != null ? widget.onPriorityChanged(value) : null,
-          ),
-        ),
-      ],
+  Widget _buildStatusPrioritySection() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final availableWidth = constraints.maxWidth;
+        
+        // Use responsive breakpoints
+        if (screenWidth < 400 || availableWidth < 350) {
+          // Stack vertically on very small screens
+          return Column(
+            children: [
+              _buildStatusField(),
+              const SizedBox(height: 16),
+              _buildPriorityField(),
+            ],
+          );
+        } else {
+          // Use row layout for larger screens
+          return Row(
+            children: [
+              Expanded(child: _buildStatusField()),
+              SizedBox(width: screenWidth < 500 ? 12 : 16),
+              Expanded(child: _buildPriorityField()),
+            ],
+          );
+        }
+      },
     );
   }
 
-  Widget _buildDateRow(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: _buildDateField(
-          context: context,
-          label: "Start Date",
-          icon: Icons.calendar_today,
-          selectedDate: widget.selectedStartDate,
-          onDateSelected: (date) {
-            widget.onStartDateChanged(date);
-            // If start date is after due date, reset due date
-            if (date != null && widget.selectedDueDate != null && date.isAfter(widget.selectedDueDate!)) {
-              widget.onDueDateChanged(null);
-            }
-          },
-          firstDate: DateTime.now().subtract(const Duration(days: 365)),
-          lastDate: DateTime.now().add(const Duration(days: 365)),
-        )),
-        const SizedBox(width: 16),
-        Expanded(child: _buildDateField(
-          context: context,
-          label: "Due Date",
-          icon: Icons.event,
-          selectedDate: widget.selectedDueDate,
-          onDateSelected: widget.onDueDateChanged,
-          firstDate: widget.selectedStartDate ?? DateTime.now(),
-          lastDate: DateTime.now().add(const Duration(days: 365)),
-        )),
-      ],
+  Widget _buildStatusField() {
+    return DropdownButtonFormField<TaskStatus>(
+      value: widget.selectedStatus,
+      decoration: InputDecoration(
+        labelText: "Status",
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: const Icon(Icons.flag),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      ),
+      isExpanded: true,
+      items: TaskStatus.values.map((status) => DropdownMenuItem(
+        value: status,
+        child: Text(
+          TaskHelpers.getStatusDisplayName(status),
+          overflow: TextOverflow.ellipsis,
+        ),
+      )).toList(),
+      onChanged: (value) => value != null ? widget.onStatusChanged(value) : null,
+    );
+  }
+
+  Widget _buildPriorityField() {
+    return DropdownButtonFormField<TaskPriority>(
+      value: widget.selectedPriority,
+      decoration: InputDecoration(
+        labelText: "Priority",
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: Icon(
+          Icons.priority_high,
+          color: TaskHelpers.getPriorityColor(widget.selectedPriority),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      ),
+      isExpanded: true,
+      items: TaskPriority.values.map((priority) => DropdownMenuItem(
+        value: priority,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: TaskHelpers.getPriorityColor(priority),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                TaskHelpers.getPriorityDisplayName(priority),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      )).toList(),
+      onChanged: (value) => value != null ? widget.onPriorityChanged(value) : null,
+    );
+  }
+
+  Widget _buildDateSection(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final availableWidth = constraints.maxWidth;
+        
+        // Use responsive breakpoints
+        if (screenWidth < 400 || availableWidth < 350) {
+          // Stack vertically on very small screens
+          return Column(
+            children: [
+              _buildStartDateField(context),
+              const SizedBox(height: 16),
+              _buildDueDateField(context),
+            ],
+          );
+        } else {
+          // Use row layout for larger screens
+          return Row(
+            children: [
+              Expanded(child: _buildStartDateField(context)),
+              SizedBox(width: screenWidth < 500 ? 12 : 16),
+              Expanded(child: _buildDueDateField(context)),
+            ],
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildStartDateField(BuildContext context) {
+    return _buildDateField(
+      context: context,
+      label: "Start Date",
+      icon: Icons.calendar_today,
+      selectedDate: widget.selectedStartDate,
+      onDateSelected: (date) {
+        widget.onStartDateChanged(date);
+        // If start date is after due date, reset due date
+        if (date != null && widget.selectedDueDate != null && date.isAfter(widget.selectedDueDate!)) {
+          widget.onDueDateChanged(null);
+        }
+      },
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+  }
+
+  Widget _buildDueDateField(BuildContext context) {
+    return _buildDateField(
+      context: context,
+      label: "Due Date",
+      icon: Icons.event,
+      selectedDate: widget.selectedDueDate,
+      onDateSelected: widget.onDueDateChanged,
+      firstDate: widget.selectedStartDate ?? DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
   }
 
@@ -284,16 +349,29 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           prefixIcon: Icon(icon),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         ),
-        child: Text(
-          selectedDate != null
-              ? "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"
-              : "Select $label",
-          style: TextStyle(
-            color: selectedDate != null 
-                ? Theme.of(context).textTheme.bodyLarge?.color
-                : Theme.of(context).hintColor,
-          ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                selectedDate != null
+                    ? "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"
+                    : "Select $label",
+                style: TextStyle(
+                  color: selectedDate != null 
+                      ? Theme.of(context).textTheme.bodyLarge?.color
+                      : Theme.of(context).hintColor,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.calendar_month,
+              size: 16,
+              color: Theme.of(context).hintColor,
+            ),
+          ],
         ),
       ),
     );
@@ -381,7 +459,7 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     SizedBox(width: 12),
-                    Text("Loading staff members..."),
+                    Expanded(child: Text("Loading staff members...")),
                   ],
                 ),
               );
@@ -430,6 +508,7 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
                                   ? Theme.of(context).hintColor
                                   : Theme.of(context).textTheme.bodyLarge?.color,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const Icon(Icons.arrow_drop_down),
@@ -440,75 +519,97 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
                 // Show selected assignees as chips
                 if (widget.assigneeIds.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: widget.assigneeIds.map((userId) {
-                      final user = users.firstWhere(
-                        (u) => u.id == userId,
-                        orElse: () => UserModel(
-                          id: userId, 
-                          name: 'Unknown User', 
-                          email: '', 
-                          password: '', 
-                          role: UserRoleAdapter.staff,
-                        ),
-                      );
-                      return Chip(
-                        avatar: CircleAvatar(
-                          backgroundColor: user.role == UserRoleAdapter.admin 
-                              ? Colors.orange.shade100 
-                              : Colors.blue.shade100,
-                          child: Text(
-                            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: user.role == UserRoleAdapter.admin 
-                                  ? Colors.orange.shade700 
-                                  : Colors.blue.shade700,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(user.name),
-                            if (user.role == UserRoleAdapter.admin) ...[
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, 
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.shade100,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'Admin',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.orange.shade700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                        onDeleted: () {
-                          final newAssignees = List<String>.from(widget.assigneeIds)..remove(userId);
-                          widget.onAssigneesChanged(newAssignees);
-                        },
-                      );
-                    }).toList(),
-                  ),
+                  _buildAssigneeChips(users),
                 ],
               ],
             );
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildAssigneeChips(List<UserModel> users) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: widget.assigneeIds.map((userId) {
+            final user = users.firstWhere(
+              (u) => u.id == userId,
+              orElse: () => UserModel(
+                id: userId, 
+                name: 'Unknown User', 
+                email: '', 
+                password: '', 
+                role: UserRoleAdapter.staff,
+              ),
+            );
+            
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth > 300 
+                    ? constraints.maxWidth * 0.45 
+                    : constraints.maxWidth,
+              ),
+              child: Chip(
+                avatar: CircleAvatar(
+                  backgroundColor: user.role == UserRoleAdapter.admin 
+                      ? Colors.orange.shade100 
+                      : Colors.blue.shade100,
+                  child: Text(
+                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                    style: TextStyle(
+                      color: user.role == UserRoleAdapter.admin 
+                          ? Colors.orange.shade700 
+                          : Colors.blue.shade700,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user.name,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (user.role == UserRoleAdapter.admin) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4, 
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Admin',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                deleteIcon: const Icon(Icons.close, size: 16),
+                onDeleted: () {
+                  final newAssignees = List<String>.from(widget.assigneeIds)..remove(userId);
+                  widget.onAssigneesChanged(newAssignees);
+                },
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -530,9 +631,13 @@ class _TaskFormFieldsState extends State<TaskFormFields> {
                 final isSelected = tempSelectedIds.contains(user.id);
                 
                 return CheckboxListTile(
-                  title: Text(user.name),
+                  title: Text(
+                    user.name,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: Text(
                     "${user.email} • ${user.role == UserRoleAdapter.admin ? 'Admin' : 'Staff'}",
+                    overflow: TextOverflow.ellipsis,
                   ),
                   secondary: CircleAvatar(
                     backgroundColor: user.role == UserRoleAdapter.admin 

@@ -26,7 +26,6 @@ class _ReportsPageState extends State<ReportsPage> with TickerProviderStateMixin
     _initializeAnimationController();
     _searchController.addListener(_onSearchChanged);
     
-    // Load initial data
     context.read<ReportsBloc>().add(LoadReportsEvent());
   }
 

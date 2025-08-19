@@ -55,7 +55,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
   final _descriptionController = TextEditingController();
   final _estimateHoursController = TextEditingController();
   final _projectService = ProjectService();
-  final _taskService = TaskService(); // Add this line
+  final _taskService = TaskService(); 
   
   String? _selectedProjectId;
   TaskStatus _selectedStatus = TaskStatus.todo;
@@ -64,7 +64,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
   DateTime? _selectedDueDate;
   List<String> _taskLabels = [];
   List<String> _assigneeIds = [];
-  bool _isLoading = false; // Add loading state
+  bool _isLoading = false; 
 
   @override
   void dispose() {
@@ -118,7 +118,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
         Text("Create New Task", style: Theme.of(context).textTheme.titleLarge),
         IconButton(
           icon: const Icon(Icons.close),
-          onPressed: _isLoading ? null : () => Navigator.pop(context), // Disable when loading
+          onPressed: _isLoading ? null : () => Navigator.pop(context), 
         ),
       ],
     );
@@ -134,7 +134,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        onPressed: _isLoading ? null : _handleSave, // Disable when loading
+        onPressed: _isLoading ? null : _handleSave, 
         child: _isLoading
             ? const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -170,7 +170,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
       return;
     }
 
-    setState(() => _isLoading = true); // Set loading state
+    setState(() => _isLoading = true); 
 
     final newTask = TaskModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -191,7 +191,6 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
     );
 
     try {
-      // Create task using the task service
       await _taskService.createTask(context, newTask);
       _clearFields();
       if (mounted) {
@@ -204,7 +203,7 @@ class _TaskCreationDialogState extends State<TaskCreationDialog> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false); // Reset loading state
+        setState(() => _isLoading = false); 
       }
     }
   }

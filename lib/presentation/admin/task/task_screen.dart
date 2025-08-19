@@ -109,7 +109,6 @@ class _TasksPageState extends State<TasksPage> {
   void _applyFilters() {
     List<TaskModel> filtered = List.from(_allTasks);
 
-    // Apply search filter
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       filtered = filtered.where((task) =>
@@ -117,33 +116,26 @@ class _TasksPageState extends State<TasksPage> {
           task.description.toLowerCase().contains(query)).toList();
     }
 
-    // Apply project filter
     if (_selectedProjectId != null) {
       filtered = filtered.where((task) => task.projectId == _selectedProjectId).toList();
     }
 
-    // Apply status filter
     if (_selectedStatus != null) {
       filtered = filtered.where((task) => task.status == _selectedStatus).toList();
     }
 
-    // Apply priority filter
     if (_selectedPriority != null) {
       filtered = filtered.where((task) => task.priority == _selectedPriority).toList();
     }
 
-    // Apply assignee filter
     if (_selectedAssigneeId != null) {
       filtered = filtered.where((task) => task.assigneeIds.contains(_selectedAssigneeId)).toList();
     }
 
-    // Sort by priority and due date
     filtered.sort((a, b) {
-      // First by priority (higher priority first)
       int priorityCompare = b.priority.compareTo(a.priority);
       if (priorityCompare != 0) return priorityCompare;
       
-      // Then by due date (earliest first)
       if (a.dueDate != null && b.dueDate != null) {
         return a.dueDate!.compareTo(b.dueDate!);
       } else if (a.dueDate != null) {
@@ -272,7 +264,6 @@ class _TasksPageState extends State<TasksPage> {
   }
 
 
-  // Updated navigation method
   void _navigateToTaskDetails(TaskModel task) async {
     final result = await Navigator.push<bool>(
       context,
@@ -281,7 +272,6 @@ class _TasksPageState extends State<TasksPage> {
       ),
     );
     
-    // If task was deleted, refresh the list
     if (result == true) {
       await _loadTasks();
     }

@@ -128,7 +128,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget? _buildFab() {
     switch (_currentIndex) {
-      case 1: // Projects tab
+      case 1: 
         return FloatingActionButton(
           heroTag: "admin_projects_fab", 
           backgroundColor: _primaryColor,

@@ -80,92 +80,137 @@ class _DashboardOverviewPageState extends State<DashboardOverviewPage> {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
 
-    final crossAxisCount = size.width < 360
-        ? 1
-        : size.width < 600
-            ? 2
-            : 3;
-
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Dashboard Overview',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onBackground,
-                  ),
-                ),
-                IconButton(
-                  onPressed: isLoading ? null : _refreshData,
-                  icon: isLoading 
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
-                  tooltip: 'Refresh Data',
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            if (isLoading)
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.2,
-                  children: List.generate(3, (index) => 
-                    const _LoadingCard()
-                  ),
-                ),
-              )
-            else
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _refreshData,
-                  child: GridView.count(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.2,
-                    children: [
-                      OverviewCard(
-                        title: "Active Projects",
-                        value: activeProjectsCount.toString(),
-                        icon: Icons.folder_open,
-                        color: AppColors.primary,
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: size.width * 0.04, // Responsive padding
+            vertical: 16.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with responsive text
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Dashboard Overview',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onBackground,
+                        fontSize: size.width < 360 ? 20 : null, // Smaller text on very small screens
                       ),
-                      OverviewCard(
-                        title: "Total Tasks",
-                        value: totalTasksCount.toString(),
-                        icon: Icons.task_alt,
-                        color: Colors.green,
-                      ),
-                      OverviewCard(
-                        title: "Staff Members",
-                        value: staffMembersCount.toString(),
-                        icon: Icons.people,
-                        color: Colors.orange,
-                      ),
-                    ],
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
+                  IconButton(
+                    onPressed: isLoading ? null : _refreshData,
+                    icon: isLoading 
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                    tooltip: 'Refresh Data',
+                  ),
+                ],
               ),
-          ],
+              SizedBox(height: size.height * 0.02),
+
+              // Responsive Grid Content
+              Expanded(
+                child: isLoading
+                    ? _buildLoadingGrid(size)
+                    : _buildDashboardGrid(size),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildLoadingGrid(Size size) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate responsive grid parameters
+        final crossAxisCount = _getCrossAxisCount(constraints.maxWidth);
+        final childAspectRatio = _getChildAspectRatio(constraints.maxWidth);
+        final spacing = _getSpacing(constraints.maxWidth);
+
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+          childAspectRatio: childAspectRatio,
+          children: List.generate(3, (index) => const _LoadingCard()),
+        );
+      },
+    );
+  }
+
+  Widget _buildDashboardGrid(Size size) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate responsive grid parameters
+        final crossAxisCount = _getCrossAxisCount(constraints.maxWidth);
+        final childAspectRatio = _getChildAspectRatio(constraints.maxWidth);
+        final spacing = _getSpacing(constraints.maxWidth);
+
+        return RefreshIndicator(
+          onRefresh: _refreshData,
+          child: GridView.count(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+            childAspectRatio: childAspectRatio,
+            children: [
+              OverviewCard(
+                title: "Active Projects",
+                value: activeProjectsCount.toString(),
+                icon: Icons.folder_open,
+                color: AppColors.primary,
+              ),
+              OverviewCard(
+                title: "Total Tasks",
+                value: totalTasksCount.toString(),
+                icon: Icons.task_alt,
+                color: Colors.green,
+              ),
+              OverviewCard(
+                title: "Staff Members",
+                value: staffMembersCount.toString(),
+                icon: Icons.people,
+                color: Colors.orange,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  int _getCrossAxisCount(double width) {
+    if (width < 400) return 1;
+    if (width < 700) return 2;
+    if (width < 1000) return 3;
+    return 4;
+  }
+
+  double _getChildAspectRatio(double width) {
+    if (width < 400) return 1.8; 
+    if (width < 700) return 1.3;
+    return 1.2;
+  }
+
+  double _getSpacing(double width) {
+    if (width < 400) return 8.0;
+    if (width < 700) return 12.0;
+    return 16.0;
   }
 }
 
@@ -174,56 +219,79 @@ class _LoadingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            colors: [
-              Colors.grey.shade200,
-              Colors.grey.shade100,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive padding and sizing
+        final padding = constraints.maxWidth < 150 ? 12.0 : 16.0;
+        final iconSize = constraints.maxWidth < 150 ? 32.0 : 40.0;
+        
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: EdgeInsets.all(padding),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.grey.shade200,
+                  Colors.grey.shade100,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              height: 16,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(8),
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Icon placeholder
+                Container(
+                  width: iconSize,
+                  height: iconSize,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(iconSize / 2),
+                  ),
+                ),
+                
+                SizedBox(height: constraints.maxHeight * 0.08),
+                
+                // Title placeholder
+                Container(
+                  width: constraints.maxWidth * 0.8,
+                  height: constraints.maxHeight * 0.12,
+                  constraints: const BoxConstraints(
+                    minHeight: 12,
+                    maxHeight: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                
+                SizedBox(height: constraints.maxHeight * 0.06),
+                
+                Container(
+                  width: constraints.maxWidth * 0.4,
+                  height: constraints.maxHeight * 0.15,
+                  constraints: const BoxConstraints(
+                    minHeight: 16,
+                    maxHeight: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Container(
-              width: 60,
-              height: 20,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
