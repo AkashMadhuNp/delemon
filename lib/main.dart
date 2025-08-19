@@ -1,4 +1,6 @@
 import 'package:delemon/core/service/auth_service.dart';
+import 'package:delemon/core/service/project_service.dart';
+import 'package:delemon/core/service/task_service.dart';
 import 'package:delemon/core/theme/theme.dart';
 import 'package:delemon/data/models/project_model.dart';
 import 'package:delemon/data/models/subtask_model.dart';
@@ -7,7 +9,8 @@ import 'package:delemon/data/models/user_model.dart';
 import 'package:delemon/presentation/auth/login_page.dart';
 import 'package:delemon/presentation/admin/admin_dashboard.dart';
 import 'package:delemon/presentation/blocs/login/bloc/login_bloc.dart';
-import 'package:delemon/presentation/blocs/signup/bloc/signup_bloc.dart'; // Add this import
+import 'package:delemon/presentation/blocs/report/bloc/report_bloc.dart';
+import 'package:delemon/presentation/blocs/signup/bloc/signup_bloc.dart';
 import 'package:delemon/presentation/splash_screen.dart';
 import 'package:delemon/presentation/staff/staff_dashboard.dart';
 import 'package:delemon/presentation/auth/signup_page.dart';
@@ -20,6 +23,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
 
+  // Register Hive adapters
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(UserRoleAdapterAdapter());
   }
@@ -49,6 +53,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late final GoRouter _router;
   final AuthService _authService = AuthService();
+  final ProjectService _projectService = ProjectService();
+  final TaskService _taskService = TaskService();
 
   @override
   void initState() {
@@ -57,76 +63,6 @@ class _MyAppState extends State<MyApp> {
   }
 
   GoRouter _createRouter() {
-    return GoRouter(
-      initialLocation: '/splash',
-      routes: [
-        GoRoute(
-          path: '/splash',
-          builder: (context, state) => const SplashScreen(),
-        ),
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginScreen(),
-        ),
-        GoRoute(
-          path: '/signup',
-          builder: (context, state) => BlocProvider(
-            create: (context) => SignUpBloc(authService: _authService),
-            child: const SignUpScreen(),
-          ),
-        ),
-        GoRoute(
-          path: '/admin-dashboard',
-          builder: (context, state) => AdminDashboard(),
-        ),
-        GoRoute(
-          path: '/staff-dashboard',
-          builder: (context, state) => StaffDashboardPage(),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => AuthBloc(authService: _authService),
-      child: MaterialApp.router(
-        title: "Flutter Delemon Task Application",
-        debugShowCheckedModeBanner: false,
-        routerConfig: _router,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
-      ),
-    );
-  }
-}
-
-// ========================================
-// ALTERNATIVE APPROACH: Multi-BLoC Provider
-// ========================================
-
-// If you prefer to provide both BLoCs globally, you can use MultiBlocProvider:
-
-class MyAppAlternative extends StatefulWidget {
-  const MyAppAlternative({super.key});
-
-  @override
-  State<MyAppAlternative> createState() => _MyAppAlternativeState();
-}
-
-class _MyAppAlternativeState extends State<MyAppAlternative> {
-  late final GoRouter _router;
-  final AuthService _authService = AuthService();
-
-  @override
-  void initState() {
-    super.initState();
-    _router = _createRouterAlternative();
-  }
-
-  GoRouter _createRouterAlternative() {
     return GoRouter(
       initialLocation: '/splash',
       routes: [
@@ -158,8 +94,26 @@ class _MyAppAlternativeState extends State<MyAppAlternative> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => AuthBloc(authService: _authService)),
-        BlocProvider(create: (context) => SignUpBloc(authService: _authService)),
+        // Authentication BLoC - Available globally
+        BlocProvider<AuthBloc>(
+          create: (context) => AuthBloc(authService: _authService),
+        ),
+        
+        // Sign Up BLoC - Available globally
+        BlocProvider<SignUpBloc>(
+          create: (context) => SignUpBloc(authService: _authService),
+        ),
+        
+        // Reports BLoC - Available globally
+        BlocProvider<ReportsBloc>(
+          create: (context) => ReportsBloc(
+            projectService: _projectService,
+            taskService: _taskService,
+            authService: _authService,
+          ),
+        ),
+        
+        
       ],
       child: MaterialApp.router(
         title: "Flutter Delemon Task Application",
@@ -170,5 +124,10 @@ class _MyAppAlternativeState extends State<MyAppAlternative> {
         themeMode: ThemeMode.system,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
